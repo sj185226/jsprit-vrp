@@ -47,6 +47,7 @@ public class CombinedVRP {
          * one capacity dimension, i.e. weight, and capacity dimension value of 2
          */
         final int WEIGHT_INDEX = 0;
+        // vehicle capacity
         final int WEIGHT_VALUE = 7;
         final int VEHICLE_COUNT = 6;
         final double DEPOT_LATITUDE = -36.7786899;

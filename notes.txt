@@ -1,0 +1,1 @@
+pickup and deliveries can be done using xml or we need to create subclass to set additinal properties
