@@ -1,5 +1,6 @@
 package com.example.jaspreet.demo;
 
+import com.graphhopper.jsprit.analysis.toolbox.GraphStreamViewer;
 import com.graphhopper.jsprit.analysis.toolbox.Plotter;
 import com.graphhopper.jsprit.analysis.toolbox.Plotter.Label;
 import com.graphhopper.jsprit.core.algorithm.VehicleRoutingAlgorithm;
@@ -7,10 +8,12 @@ import com.graphhopper.jsprit.core.algorithm.box.Jsprit;
 import com.graphhopper.jsprit.core.algorithm.state.StateManager;
 import com.graphhopper.jsprit.core.problem.Location;
 import com.graphhopper.jsprit.core.problem.VehicleRoutingProblem;
+import com.graphhopper.jsprit.core.problem.VehicleRoutingProblem.FleetSize;
 import com.graphhopper.jsprit.core.problem.constraint.ConstraintManager;
 import com.graphhopper.jsprit.core.problem.constraint.ServiceDeliveriesFirstConstraint;
 import com.graphhopper.jsprit.core.problem.job.Delivery;
 import com.graphhopper.jsprit.core.problem.job.Pickup;
+import com.graphhopper.jsprit.core.problem.job.Service;
 import com.graphhopper.jsprit.core.problem.solution.VehicleRoutingProblemSolution;
 import com.graphhopper.jsprit.core.problem.vehicle.VehicleImpl;
 import com.graphhopper.jsprit.core.problem.vehicle.VehicleImpl.Builder;
@@ -20,22 +23,24 @@ import com.graphhopper.jsprit.core.reporting.SolutionPrinter;
 import com.graphhopper.jsprit.core.util.Solutions;
 
 import com.graphhopper.jsprit.io.problem.VrpXMLWriter;
-import com.graphhopper.jsprit.util.Examples;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 public class Backhaul {
     public static void main(String[] args) {
         /*
          * some preparation - create output folder
-		 */
-        Examples.createOutputFolder();
+         */
 
 		/*
          * get a vehicle type-builder and build a type with the typeId "vehicleType" and a capacity of 2
 		 */
-        VehicleTypeImpl.Builder vehicleTypeBuilder = VehicleTypeImpl.Builder.newInstance("vehicleType").addCapacityDimension(0, 2);
-        VehicleType vehicleType = vehicleTypeBuilder.build();
+        // VehicleTypeImpl.Builder vehicleTypeBuilder =
+        // VehicleTypeImpl.Builder.newInstance("vehicleType").addCapacityDimension(0,
+        // 2);
+        // VehicleType vehicleType = vehicleTypeBuilder.build();
 
 		/*
          * get a vehicle-builder and build a vehicle located at (10,10) with type "vehicleType"
@@ -131,11 +136,13 @@ public class Backhaul {
         List<Pickup> pickups = new ArrayList<>();
         List<Delivery> deliveries = new ArrayList<>();
 
-        for (Integer i = 0; i < PICKUPANDDELIVERIES.length; i++) {
+        for (Integer i = 0; i < PICKUPANDDELIVERYAMOUNTS.length; i++) {
 
-            Pickup pickup = Pickup.Builder.newInstance("pickup"+i.toString()).addSizeDimension(0, PICKUPANDDELIVERYAMOUNTS[i][0]).setLocation(locationList.get(i)).build();
+            Pickup pickup = Pickup.Builder.newInstance("pickup" + i.toString())
+                    .addSizeDimension(0, (int) PICKUPANDDELIVERYAMOUNTS[i][0]).setLocation(locationList.get(i)).build();
             pickups.add(pickup);
-            Delivery delivery = Delivery.Builder.newInstance("delivery"+i.toString()).addSizeDimension(0, PICKUPANDDELIVERYAMOUNTS[i][1]).setLocation(locationList.get(i)).build();
+            Delivery delivery = Delivery.Builder.newInstance("delivery" + i.toString())
+                    .addSizeDimension(0, (int) PICKUPANDDELIVERYAMOUNTS[i][1]).setLocation(locationList.get(i)).build();
             deliveries.add(delivery);
             
         }
@@ -153,13 +160,17 @@ public class Backhaul {
         }
         vrpBuilder.addAllVehicles(vehicles);
 
-        List<Service> services = new ArrayList<>();
-        for (int i = 0; i < CP_COUNT; i++) {
-            Service service = Service.Builder.newInstance(String.valueOf(i + 1)).addSizeDimension(WEIGHT_INDEX, 1)
-                    .setLocation(locationList.get(i + 1)).addTimeWindow(60, 360).setServiceTime(30).build();
-            services.add(service);
-        }
-        vrpBuilder.addAllJobs(services);
+        // List<Service> services = new ArrayList<>();
+        // for (int i = 0; i < CP_COUNT; i++) {
+        // Service service = Service.Builder.newInstance(String.valueOf(i +
+        // 1)).addSizeDimension(WEIGHT_INDEX, 1)
+        // .setLocation(locationList.get(i + 1)).addTimeWindow(60,
+        // 360).setServiceTime(30).build();
+        // services.add(service);
+        // }
+        vrpBuilder.addAllJobs(pickups);
+        vrpBuilder.addAllJobs(deliveries);
+        vrpBuilder.setFleetSize(FleetSize.FINITE);
         VehicleRoutingProblem problem = vrpBuilder.build();
 
 
@@ -190,6 +201,10 @@ public class Backhaul {
         Plotter plotter = new Plotter(problem, bestSolution);
         plotter.setLabel(Label.SIZE);
         plotter.plot("output/solution.png", "solution");
+
+        SolutionPrinter.print(problem, bestSolution, SolutionPrinter.Print.VERBOSE);
+
+        new GraphStreamViewer(problem, bestSolution).setRenderDelay(200).display();
 
     }
 
