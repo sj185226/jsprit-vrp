@@ -309,7 +309,7 @@ public class CombinedVRP {
         List<Service> services = new ArrayList<>();
         for (int i = 0; i < CP_COUNT; i++) {
             Service service = Service.Builder.newInstance(String.valueOf(i + 1)).addSizeDimension(WEIGHT_INDEX, 1)
-                    .setLocation(locationList.get(i + 1)).build();
+                    .setLocation(locationList.get(i + 1)).addTimeWindow(60, 360).setServiceTime(30).build();
             services.add(service);
         }
 
