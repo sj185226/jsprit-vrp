@@ -1,1 +1,5 @@
+If capacity is very less compared to the delivery/pickup amount, then it wont assign all the vehicles
+
+ return costParams.perDistanceUnit * getDistance(from.getId(), to.getId()) + costParams.perTransportTimeUnit * getTime(from.getId(), to.getId());
+To use only time matrix or only distance matrix use vehicle cost parameters
 pickup and deliveries can be done using xml or we need to create subclass to set additinal properties
