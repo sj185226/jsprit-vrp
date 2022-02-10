@@ -2,10 +2,13 @@ package com.example.jaspreet.demo.model;
 
 import com.graphhopper.jsprit.core.problem.Location;
 
+import java.time.LocalTime;
+
 public class Parameters {
 
   private double vehicleCapacity;
   private int numberOfVehicles;
+  private LocalTime vehicleStartTime;
   private boolean hardTimeWindow;
   private boolean backhaulRequired;
   private double fixedCostPerTrip;
@@ -15,7 +18,7 @@ public class Parameters {
   private Location originlocation;
 
     public Parameters(double vehicleCapacity, int numberOfVehicles, boolean hardTimeWindow, boolean backhaulRequired,
-            double fixedCostPerTrip, double costPerUnitDistance, double costPerUnitTime, Location originLocation) {
+            double fixedCostPerTrip, double costPerUnitDistance, double costPerUnitTime,LocalTime vehicleStartTime, Location originLocation) {
         this.vehicleCapacity = vehicleCapacity;
         this.numberOfVehicles = numberOfVehicles;
         this.hardTimeWindow = hardTimeWindow;
@@ -24,10 +27,11 @@ public class Parameters {
         this.costPerUnitDistance = costPerUnitDistance;
         this.costPerUnitTime = costPerUnitTime;
         this.originlocation = originLocation;
+        this.vehicleStartTime = vehicleStartTime;
     }
 
     public Parameters(double vehicleCapacity, int numberOfVehicles, boolean hardTimeWindow, boolean backhaulRequired,
-                      double fixedCostPerTrip, double costPerUnitDistance, double costPerUnitTime, String originAddress) {
+                      double fixedCostPerTrip, double costPerUnitDistance, double costPerUnitTime, LocalTime vehicleStartTime, String originAddress) {
         this.vehicleCapacity = vehicleCapacity;
         this.numberOfVehicles = numberOfVehicles;
         this.hardTimeWindow = hardTimeWindow;
@@ -36,6 +40,7 @@ public class Parameters {
         this.costPerUnitDistance = costPerUnitDistance;
         this.costPerUnitTime = costPerUnitTime;
         this.originAddress = originAddress;
+        this.vehicleStartTime = vehicleStartTime;
     }
 
     public double getVehicleCapacity() {
@@ -108,5 +113,13 @@ public class Parameters {
 
     public void setCostPerUnitTime(double costPerUnitTime) {
         this.costPerUnitTime = costPerUnitTime;
+    }
+
+    public LocalTime getVehicleStartTime() {
+        return vehicleStartTime;
+    }
+
+    public void setVehicleStartTime(LocalTime vehicleStartTime) {
+        this.vehicleStartTime = vehicleStartTime;
     }
 }
