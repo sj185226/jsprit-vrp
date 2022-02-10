@@ -25,10 +25,10 @@ public class Cashpoint {
         this.deliveryAmount = deliveryAmount;
     }
 
-    public Cashpoint(String name, double latitude, double longitude, LocalTime windowStartTime,
+    public Cashpoint(String name, Location location, LocalTime windowStartTime,
             LocalTime windowEndTime, int serviceTime, double pickupAmount, double deliveryAmount) {
         this.name = name;
-        this.location = Location.newInstance(latitude, longitude);
+        this.location = location;
         this.windowStartTime = windowStartTime;
         this.windowEndTime = windowEndTime;
         this.serviceTime = serviceTime;

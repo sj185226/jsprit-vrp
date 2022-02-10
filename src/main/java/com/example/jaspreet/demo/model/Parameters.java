@@ -15,8 +15,7 @@ public class Parameters {
   private Location originlocation;
 
     public Parameters(double vehicleCapacity, int numberOfVehicles, boolean hardTimeWindow, boolean backhaulRequired,
-                      double fixedCostPerTrip, double costPerUnitDistance, double costPerUnitTime, double originLongitude,
-                      double originLatitude) {
+            double fixedCostPerTrip, double costPerUnitDistance, double costPerUnitTime, Location originLocation) {
         this.vehicleCapacity = vehicleCapacity;
         this.numberOfVehicles = numberOfVehicles;
         this.hardTimeWindow = hardTimeWindow;
@@ -24,7 +23,7 @@ public class Parameters {
         this.fixedCostPerTrip = fixedCostPerTrip;
         this.costPerUnitDistance = costPerUnitDistance;
         this.costPerUnitTime = costPerUnitTime;
-        this.originlocation = Location.newInstance(originLatitude, originLongitude);
+        this.originlocation = originLocation;
     }
 
     public Parameters(double vehicleCapacity, int numberOfVehicles, boolean hardTimeWindow, boolean backhaulRequired,
