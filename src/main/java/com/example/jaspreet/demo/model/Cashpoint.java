@@ -2,23 +2,33 @@ package com.example.jaspreet.demo.model;
 
 import java.time.LocalTime;
 
+import com.graphhopper.jsprit.core.problem.Location;
+
 public class Cashpoint {
     private String name;
     private String address;
-    private double latitude;
-    private double longitude;
+    private Location location;
     private LocalTime windowStartTime;
     private LocalTime windowEndTime;
     private int serviceTime;
     private double pickupAmount;
     private double deliveryAmount;
 
-    public Cashpoint(String name, String address, double latitude, double longitude, LocalTime windowStartTime,
+    public Cashpoint(String name, String address, LocalTime windowStartTime,
             LocalTime windowEndTime, int serviceTime, double pickupAmount, double deliveryAmount) {
         this.name = name;
         this.address = address;
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.windowStartTime = windowStartTime;
+        this.windowEndTime = windowEndTime;
+        this.serviceTime = serviceTime;
+        this.pickupAmount = pickupAmount;
+        this.deliveryAmount = deliveryAmount;
+    }
+
+    public Cashpoint(String name, double latitude, double longitude, LocalTime windowStartTime,
+            LocalTime windowEndTime, int serviceTime, double pickupAmount, double deliveryAmount) {
+        this.name = name;
+        this.location = Location.newInstance(latitude, longitude);
         this.windowStartTime = windowStartTime;
         this.windowEndTime = windowEndTime;
         this.serviceTime = serviceTime;
@@ -34,7 +44,7 @@ public class Cashpoint {
         this.name = name;
     }
 
-    public String getLocation() {
+    public String getAddress() {
         return address;
     }
 
@@ -42,20 +52,12 @@ public class Cashpoint {
         this.address = address;
     }
 
-    public double getLatitude() {
-        return latitude;
+    public Location getLocation() {
+        return location;
     }
 
-    public void setLatitude(double latitude) {
-        this.latitude = latitude;
-    }
-
-    public double getLongitude() {
-        return longitude;
-    }
-
-    public void setLongitude(double longitude) {
-        this.longitude = longitude;
+    public void setLocation(Location location) {
+        this.location = location;
     }
 
     public LocalTime getWindowStartTime() {
