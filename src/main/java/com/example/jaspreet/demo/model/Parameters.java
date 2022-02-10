@@ -1,5 +1,7 @@
 package com.example.jaspreet.demo.model;
 
+import com.graphhopper.jsprit.core.problem.Location;
+
 public class Parameters {
 
   private double vehicleCapacity;
@@ -8,22 +10,32 @@ public class Parameters {
   private boolean backhaulRequired;
   private double fixedCostPerTrip;
   private double costPerUnitDistance;
-  private double originLongitude;
-  private double originLatitude;
+  private double costPerUnitTime;
   private String originAddress;
-
+  private Location originlocation;
 
     public Parameters(double vehicleCapacity, int numberOfVehicles, boolean hardTimeWindow, boolean backhaulRequired,
-                      double fixedCostPerTrip, double costPerUnitDistance, double originLongitude, double originLatitude,
-                      String originAddress) {
+                      double fixedCostPerTrip, double costPerUnitDistance, double costPerUnitTime, double originLongitude,
+                      double originLatitude) {
         this.vehicleCapacity = vehicleCapacity;
         this.numberOfVehicles = numberOfVehicles;
         this.hardTimeWindow = hardTimeWindow;
         this.backhaulRequired = backhaulRequired;
         this.fixedCostPerTrip = fixedCostPerTrip;
         this.costPerUnitDistance = costPerUnitDistance;
-        this.originLongitude = originLongitude;
-        this.originLatitude = originLatitude;
+        this.costPerUnitTime = costPerUnitTime;
+        this.originlocation = Location.newInstance(originLatitude, originLongitude);
+    }
+
+    public Parameters(double vehicleCapacity, int numberOfVehicles, boolean hardTimeWindow, boolean backhaulRequired,
+                      double fixedCostPerTrip, double costPerUnitDistance, double costPerUnitTime, String originAddress) {
+        this.vehicleCapacity = vehicleCapacity;
+        this.numberOfVehicles = numberOfVehicles;
+        this.hardTimeWindow = hardTimeWindow;
+        this.backhaulRequired = backhaulRequired;
+        this.fixedCostPerTrip = fixedCostPerTrip;
+        this.costPerUnitDistance = costPerUnitDistance;
+        this.costPerUnitTime = costPerUnitTime;
         this.originAddress = originAddress;
     }
 
@@ -75,20 +87,12 @@ public class Parameters {
         this.costPerUnitDistance = costPerUnitDistance;
     }
 
-    public double getOriginLongitude() {
-        return originLongitude;
+    public Location getOriginlocation() {
+        return originlocation;
     }
 
-    public void setOriginLongitude(double originLongitude) {
-        this.originLongitude = originLongitude;
-    }
-
-    public double getOriginLatitude() {
-        return originLatitude;
-    }
-
-    public void setOriginLatitude(double originLatitude) {
-        this.originLatitude = originLatitude;
+    public void setOriginlocation(Location originlocation) {
+        this.originlocation = originlocation;
     }
 
     public String getOriginAddress() {
@@ -97,5 +101,13 @@ public class Parameters {
 
     public void setOriginAddress(String originAddress) {
         this.originAddress = originAddress;
+    }
+
+    public double getCostPerUnitTime() {
+        return costPerUnitTime;
+    }
+
+    public void setCostPerUnitTime(double costPerUnitTime) {
+        this.costPerUnitTime = costPerUnitTime;
     }
 }
