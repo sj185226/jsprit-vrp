@@ -220,7 +220,7 @@ public class DataParser {
     }
 
     private Location getLocation(String locStr) {
-        String[] latlong = locStr.split(",");
+        String[] latlong = locStr.split(";");
         if (latlong.length != 2) {
             return null;
         }
