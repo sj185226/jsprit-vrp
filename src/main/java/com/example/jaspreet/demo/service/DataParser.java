@@ -20,7 +20,6 @@ import com.example.jaspreet.demo.model.Parameters;
 import com.graphhopper.jsprit.core.problem.Location;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 @Service
