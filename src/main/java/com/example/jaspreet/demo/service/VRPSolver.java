@@ -40,57 +40,69 @@ public class VRPSolver {
     VehicleRoutingTransportCostsMatrix.Builder costMatrixBuilder = VehicleRoutingTransportCostsMatrix.Builder
             .newInstance(true);
     VehicleRoutingProblem.Builder vrpBuilder = VehicleRoutingProblem.Builder.newInstance();
-    public void solve(List<Cashpoint> cashpoints, Parameters param, DataMatrix dataMatrix){
+    public boolean solve(List<Cashpoint> cashpoints, Parameters param, DataMatrix dataMatrix) {
         this.param = param;
-        createServices(cashpoints);
-        createVehicles(param.getNumberOfVehicles());
+        int timeBuffer =0;
+        for(int i=0;i<5;i++){
+            createServices(cashpoints, timeBuffer);
+            createVehicles(param.getNumberOfVehicles());
+            vrpBuilder.addAllVehicles(vehicles);
+            createCostMatrix(dataMatrix.getDistanceMatrix(), dataMatrix.getTimeMatrix(), cashpoints);
+            VehicleRoutingTransportCosts costMatrix = costMatrixBuilder.build();
+            vrpBuilder.addAllJobs(pickups);
+            vrpBuilder.addAllJobs(deliveries);
+            vrpBuilder.setFleetSize(VehicleRoutingProblem.FleetSize.FINITE);
+            vrpBuilder.setRoutingCost(costMatrix);
+            VehicleRoutingProblem problem = vrpBuilder.build();
 
-        vrpBuilder.addAllVehicles(vehicles);
-        createCostMatrix(dataMatrix.getDistanceMatrix(), dataMatrix.getTimeMatrix(), cashpoints);
-        VehicleRoutingTransportCosts costMatrix = costMatrixBuilder.build();
-        vrpBuilder.addAllJobs(pickups);
-        vrpBuilder.addAllJobs(deliveries);
-        vrpBuilder.setFleetSize(VehicleRoutingProblem.FleetSize.FINITE);
-        vrpBuilder.setRoutingCost(costMatrix);
-        VehicleRoutingProblem problem = vrpBuilder.build();
+            StateManager stateManager = new StateManager(problem);
+            ConstraintManager constraintManager = new ConstraintManager(problem, stateManager);
+            if(param.isBackhaulRequired()) {
+                constraintManager.addConstraint(new ServiceDeliveriesFirstConstraint(),
+                        ConstraintManager.Priority.CRITICAL);
+            }
 
-        StateManager stateManager = new StateManager(problem);
-        ConstraintManager constraintManager = new ConstraintManager(problem, stateManager);
-        constraintManager.addConstraint(new ServiceDeliveriesFirstConstraint(),
-                ConstraintManager.Priority.CRITICAL);
+            VehicleRoutingAlgorithm algorithm = Jsprit.Builder.newInstance(problem)
+                    .setStateAndConstraintManager(stateManager, constraintManager)
+                    .buildAlgorithm();
 
-        VehicleRoutingAlgorithm algorithm = Jsprit.Builder.newInstance(problem)
-                .setStateAndConstraintManager(stateManager, constraintManager)
-                .buildAlgorithm();
+            Collection<VehicleRoutingProblemSolution> solutions = algorithm.searchSolutions();
+            VehicleRoutingProblemSolution bestSolution = Solutions.bestOf(solutions);
 
-        Collection<VehicleRoutingProblemSolution> solutions = algorithm.searchSolutions();
-        VehicleRoutingProblemSolution bestSolution = Solutions.bestOf(solutions);
-
-//        new VrpXMLWriter(problem, solutions).write("output/problem-with-solution.xml");
-        SolutionPrinter.print(bestSolution);
-        Plotter plotter = new Plotter(problem, bestSolution);
-        plotter.setLabel(Plotter.Label.SIZE);
-        plotter.plot("output/solution.png", "solution");
-        SolutionPrinter.print(problem, bestSolution, SolutionPrinter.Print.VERBOSE);
-        new GraphStreamViewer(problem, bestSolution).setRenderDelay(200).display();
+    //        new VrpXMLWriter(problem, solutions).write("output/problem-with-solution.xml");
+            SolutionPrinter.print(bestSolution);
+            if (!bestSolution.getUnassignedJobs().isEmpty()) {
+                timeBuffer += 60;
+                if(param.isHardTimeWindow()) return false;
+            }
+            else {
+                Plotter plotter = new Plotter(problem, bestSolution);
+                plotter.setLabel(Plotter.Label.SIZE);
+                plotter.plot("output/solution.png", "solution");
+                SolutionPrinter.print(problem, bestSolution, SolutionPrinter.Print.VERBOSE);
+                new GraphStreamViewer(problem, bestSolution).setRenderDelay(200).display();
+                return true;
+            }
+        }
+        return false;
     }
 
-    public void createServices(List<Cashpoint> cashpoints){
-        for (Integer i = 0; i < cashpoints.size(); i++) {
+    public void createServices(List<Cashpoint> cashpoints, int timeBuffer){
+        for (Cashpoint cashpoint : cashpoints) {
 
-            if((int) cashpoints.get(i).getPickupAmount()!=0) {
-                Pickup pickup = Pickup.Builder.newInstance("pickup" + i.toString())
-                        .addSizeDimension(0, (int) cashpoints.get(i).getPickupAmount())
-                        .setLocation(cashpoints.get(i).getLocation())
-                        .addTimeWindow(getTimeDifference(cashpoints.get(i).getWindowStartTime()), getTimeDifference(cashpoints.get(i).getWindowEndTime()))
-                        .setServiceTime(cashpoints.get(i).getServiceTime()).build();
+            if ((int) cashpoint.getPickupAmount() != 0) {
+                Pickup pickup = Pickup.Builder.newInstance(cashpoint.getName() + "_pickup")
+                        .addSizeDimension(0, (int) cashpoint.getPickupAmount())
+                        .setLocation(cashpoint.getLocation())
+                        .addTimeWindow(getTimeDifference(cashpoint.getWindowStartTime()), getTimeDifference(cashpoint.getWindowEndTime()) + timeBuffer)
+                        .setServiceTime(cashpoint.getServiceTime()).build();
                 pickups.add(pickup);
             }
-            if((int) cashpoints.get(i).getDeliveryAmount()!=0) {
-                Delivery delivery = Delivery.Builder.newInstance("delivery" + i.toString())
-                        .addSizeDimension(0, (int) cashpoints.get(i).getDeliveryAmount())
-                        .addTimeWindow(getTimeDifference(cashpoints.get(i).getWindowStartTime()), getTimeDifference(cashpoints.get(i).getWindowEndTime()))
-                        .setServiceTime(cashpoints.get(i).getServiceTime()).build();
+            if ((int) cashpoint.getDeliveryAmount() != 0) {
+                Delivery delivery = Delivery.Builder.newInstance(cashpoint.getName() + "_delivery")
+                        .addSizeDimension(0, (int) cashpoint.getDeliveryAmount())
+                        .addTimeWindow(getTimeDifference(cashpoint.getWindowStartTime()), getTimeDifference(cashpoint.getWindowEndTime()) + timeBuffer)
+                        .setServiceTime(cashpoint.getServiceTime()).build();
                 deliveries.add(delivery);
             }
         }
@@ -118,8 +130,6 @@ public class VRPSolver {
 
         for (int i = 0; i < DISTANCE_MATRIX.length; i++) {
             for (int j = 0; j < i; j++) {
-                if (i == j)
-                    continue;
                 costMatrixBuilder.addTransportDistance(cashpoints.get(i).getLocation().getId(),
                         cashpoints.get(i).getLocation().getId(),
                         DISTANCE_MATRIX[i][j]);

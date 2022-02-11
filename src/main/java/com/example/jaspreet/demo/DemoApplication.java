@@ -28,7 +28,7 @@ public class DemoApplication {
 		List<Cashpoint> cashpoints = dataParser.getData();
 		Parameters param = dataParser.getParameters();
 		VRPSolver vrpsolver = new VRPSolver();
-		vrpsolver.solve(cashpoints, param, dataMatrix);
+		boolean solution =vrpsolver.solve(cashpoints, param, dataMatrix);
 	}
 
 }
