@@ -8,6 +8,7 @@ import com.graphhopper.jsprit.analysis.toolbox.Plotter;
 import com.graphhopper.jsprit.core.algorithm.VehicleRoutingAlgorithm;
 import com.graphhopper.jsprit.core.algorithm.box.Jsprit;
 import com.graphhopper.jsprit.core.algorithm.state.StateManager;
+import com.graphhopper.jsprit.core.problem.Location;
 import com.graphhopper.jsprit.core.problem.VehicleRoutingProblem;
 import com.graphhopper.jsprit.core.problem.constraint.ConstraintManager;
 import com.graphhopper.jsprit.core.problem.constraint.ServiceDeliveriesFirstConstraint;
@@ -21,8 +22,14 @@ import com.graphhopper.jsprit.core.problem.vehicle.VehicleTypeImpl;
 import com.graphhopper.jsprit.core.reporting.SolutionPrinter;
 import com.graphhopper.jsprit.core.util.Solutions;
 import com.graphhopper.jsprit.core.util.VehicleRoutingTransportCostsMatrix;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -32,22 +39,30 @@ import java.util.List;
 @Service
 public class VRPSolver {
 
-    List<Pickup> pickups = new ArrayList<>();
-    List<Delivery> deliveries = new ArrayList<>();
-    List<VehicleImpl> vehicles = new ArrayList<>();
+    @Value("${RESULT_FILE}")
+    private String outputFile;
 
-    Parameters param;
-    VehicleRoutingTransportCostsMatrix.Builder costMatrixBuilder = VehicleRoutingTransportCostsMatrix.Builder
+    private List<Pickup> pickups;
+    private List<Delivery> deliveries;
+    private List<VehicleImpl> vehicles = new ArrayList<>();
+
+    private Parameters param;
+    private VehicleRoutingTransportCostsMatrix.Builder costMatrixBuilder = VehicleRoutingTransportCostsMatrix.Builder
             .newInstance(true);
-    VehicleRoutingProblem.Builder vrpBuilder = VehicleRoutingProblem.Builder.newInstance();
-    public boolean solve(List<Cashpoint> cashpoints, Parameters param, DataMatrix dataMatrix) {
+
+    public boolean solve(List<Cashpoint> cashpoints, Parameters param, DataMatrix dataMatrix)
+            throws FileNotFoundException {
         this.param = param;
         int timeBuffer =0;
+        createVehicles(param.getNumberOfVehicles());
+        createCostMatrix(dataMatrix.getDistanceMatrix(), dataMatrix.getTimeMatrix(), cashpoints);
         for(int i=0;i<5;i++){
-            createServices(cashpoints, timeBuffer);
-            createVehicles(param.getNumberOfVehicles());
+
+            VehicleRoutingProblem.Builder vrpBuilder = VehicleRoutingProblem.Builder.newInstance();
             vrpBuilder.addAllVehicles(vehicles);
-            createCostMatrix(dataMatrix.getDistanceMatrix(), dataMatrix.getTimeMatrix(), cashpoints);
+            pickups = new ArrayList<>();
+            deliveries = new ArrayList<>();
+            createServices(cashpoints, timeBuffer);
             VehicleRoutingTransportCosts costMatrix = costMatrixBuilder.build();
             vrpBuilder.addAllJobs(pickups);
             vrpBuilder.addAllJobs(deliveries);
@@ -79,7 +94,9 @@ public class VRPSolver {
                 Plotter plotter = new Plotter(problem, bestSolution);
                 plotter.setLabel(Plotter.Label.SIZE);
                 plotter.plot("output/solution.png", "solution");
-                SolutionPrinter.print(problem, bestSolution, SolutionPrinter.Print.VERBOSE);
+                PrintWriter pw = new PrintWriter(new File(outputFile));
+                SolutionPrinter.print(pw, problem, bestSolution, SolutionPrinter.Print.VERBOSE);
+                pw.close();
                 new GraphStreamViewer(problem, bestSolution).setRenderDelay(200).display();
                 return true;
             }
@@ -95,14 +112,14 @@ public class VRPSolver {
                         .addSizeDimension(0, (int) cashpoint.getPickupAmount())
                         .setLocation(cashpoint.getLocation())
                         .addTimeWindow(getTimeDifference(cashpoint.getWindowStartTime()), getTimeDifference(cashpoint.getWindowEndTime()) + timeBuffer)
-                        .setServiceTime(cashpoint.getServiceTime()).build();
+                        .setServiceTime(cashpoint.getServiceTime()).setLocation(cashpoint.getLocation()).build();
                 pickups.add(pickup);
             }
             if ((int) cashpoint.getDeliveryAmount() != 0) {
                 Delivery delivery = Delivery.Builder.newInstance(cashpoint.getName() + "_delivery")
                         .addSizeDimension(0, (int) cashpoint.getDeliveryAmount())
                         .addTimeWindow(getTimeDifference(cashpoint.getWindowStartTime()), getTimeDifference(cashpoint.getWindowEndTime()) + timeBuffer)
-                        .setServiceTime(cashpoint.getServiceTime()).build();
+                        .setServiceTime(cashpoint.getServiceTime()).setLocation(cashpoint.getLocation()).build();
                 deliveries.add(delivery);
             }
         }
@@ -115,7 +132,11 @@ public class VRPSolver {
 
     public void createVehicles(int numberOfVehicles) {
         VehicleTypeImpl.Builder vehicleTypeBuilder = VehicleTypeImpl.Builder.newInstance("vehicleType")
-                .addCapacityDimension(0,(int) param.getVehicleCapacity());
+                .addCapacityDimension(0, (int) param.getVehicleCapacity()).setFixedCost(param.getFixedCostPerTrip())
+                .setCostPerDistance(param.getCostPerUnitDistance())
+                .setCostPerTransportTime(param.getCostPerUnitTime() / 60)
+                .setCostPerServiceTime(param.getCostPerUnitTime() / 60)
+                .setCostPerWaitingTime(param.getCostPerUnitTime() / 60);
         VehicleType vehicleType = vehicleTypeBuilder.build();
         for (int i = 0; i < numberOfVehicles; i++) {
             VehicleImpl.Builder vehicleBuilder = VehicleImpl.Builder.newInstance("vehicle" + i);
@@ -130,11 +151,13 @@ public class VRPSolver {
 
         for (int i = 0; i < DISTANCE_MATRIX.length; i++) {
             for (int j = 0; j < i; j++) {
-                costMatrixBuilder.addTransportDistance(cashpoints.get(i).getLocation().getId(),
-                        cashpoints.get(i).getLocation().getId(),
+                Location loc1 = i == 0 ? param.getOriginlocation() : cashpoints.get(i - 1).getLocation();
+                Location loc2 = j == 0 ? param.getOriginlocation() : cashpoints.get(j - 1).getLocation();
+                costMatrixBuilder.addTransportDistance(loc1.getId(),
+                        loc2.getId(),
                         DISTANCE_MATRIX[i][j]);
-                costMatrixBuilder.addTransportTime(cashpoints.get(i).getLocation().getId(),
-                        cashpoints.get(i).getLocation().getId(),
+                costMatrixBuilder.addTransportTime(loc1.getId(),
+                        loc2.getId(),
                         TIME_MATRIX[i][j]);
             }
         }

@@ -20,6 +20,7 @@ import com.example.jaspreet.demo.model.Parameters;
 import com.graphhopper.jsprit.core.problem.Location;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -51,7 +52,7 @@ public class DataParser {
             throw new IncorrectHeadersException("Property");
         }
         dataHeaders = dataHeadersStr.split(",");
-        if (paramHeaders.length != 7) {
+        if (dataHeaders.length != 7) {
             throw new IncorrectHeadersException("Property");
         }
     }
