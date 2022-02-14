@@ -85,17 +85,18 @@ public class VRPSolver {
             VehicleRoutingProblemSolution bestSolution = Solutions.bestOf(solutions);
 
     //        new VrpXMLWriter(problem, solutions).write("output/problem-with-solution.xml");
-            SolutionPrinter.print(bestSolution);
+
             if (!bestSolution.getUnassignedJobs().isEmpty()) {
                 timeBuffer += 60;
                 if(param.isHardTimeWindow()) return false;
             }
             else {
+                DataParser.print(bestSolution);
                 Plotter plotter = new Plotter(problem, bestSolution);
                 plotter.setLabel(Plotter.Label.SIZE);
                 plotter.plot("output/solution.png", "solution");
                 PrintWriter pw = new PrintWriter(new File(outputFile));
-                SolutionPrinter.print(pw, problem, bestSolution, SolutionPrinter.Print.VERBOSE);
+                DataParser.print(pw, problem, bestSolution, DataParser.Print.VERBOSE);
                 pw.close();
                 new GraphStreamViewer(problem, bestSolution).setRenderDelay(200).display();
                 return true;
@@ -162,7 +163,5 @@ public class VRPSolver {
             }
         }
     }
-
-
 
 }

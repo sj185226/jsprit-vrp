@@ -3,11 +3,9 @@ package com.example.jaspreet.demo.service;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
@@ -19,6 +17,14 @@ import com.example.jaspreet.demo.model.Cashpoint;
 import com.example.jaspreet.demo.model.Parameters;
 import com.graphhopper.jsprit.core.problem.Location;
 
+import com.graphhopper.jsprit.core.problem.VehicleRoutingProblem;
+import com.graphhopper.jsprit.core.problem.job.Break;
+import com.graphhopper.jsprit.core.problem.job.Job;
+import com.graphhopper.jsprit.core.problem.job.Shipment;
+import com.graphhopper.jsprit.core.problem.solution.VehicleRoutingProblemSolution;
+import com.graphhopper.jsprit.core.problem.solution.route.VehicleRoute;
+import com.graphhopper.jsprit.core.problem.solution.route.activity.TourActivity;
+//import com.graphhopper.jsprit.core.reporting.DataParser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -252,6 +258,168 @@ public class DataParser {
 
         return false;
 
+    }
+
+    private static final PrintWriter SYSTEM_OUT_AS_PRINT_WRITER = new PrintWriter(System.out);
+
+    /**
+     * Enum to indicate verbose-level.
+     * <p>
+     * <p>
+     * Print.CONCISE and Print.VERBOSE are available.
+     *
+     * @author stefan schroeder
+     */
+    public enum Print {
+
+        CONCISE, VERBOSE
+    }
+
+    private static class Jobs {
+        int nServices;
+        int nShipments;
+        int nBreaks;
+
+        public Jobs(int nServices, int nShipments, int nBreaks) {
+            super();
+            this.nServices = nServices;
+            this.nShipments = nShipments;
+            this.nBreaks = nBreaks;
+        }
+    }
+
+
+    /**
+     * Prints costs and #vehicles to stdout (out.println).
+     *
+     * @param solution the solution to be printed
+     */
+    public static void print(VehicleRoutingProblemSolution solution) {
+        print(SYSTEM_OUT_AS_PRINT_WRITER, solution);
+        SYSTEM_OUT_AS_PRINT_WRITER.flush();
+    }
+
+    /**
+     * Prints costs and #vehicles to the given writer
+     *
+     * @param out      the destination writer
+     * @param solution the solution to be printed
+     */
+    public static void print(PrintWriter out, VehicleRoutingProblemSolution solution) {
+        out.println("[costs=" + solution.getCost() + "]");
+        out.println("[#vehicles=" + solution.getRoutes().size() + "]");
+    }
+
+    /* *
+     * Prints costs and #vehicles to the to stdout (out.println).
+     *
+     * @param out      the destination writer
+     * @param solution the solution to be printed
+     */
+    public static void print(VehicleRoutingProblem problem, VehicleRoutingProblemSolution solution, DataParser.Print print) {
+        print(SYSTEM_OUT_AS_PRINT_WRITER, problem, solution, print);
+        SYSTEM_OUT_AS_PRINT_WRITER.flush();
+    }
+
+    /**
+     * Prints costs and #vehicles to the given writer
+     *
+     * @param out      the destination writer
+     * @param solution the solution to be printed
+     */
+    public static void print(PrintWriter out, VehicleRoutingProblem problem, VehicleRoutingProblemSolution solution, DataParser.Print print) {
+
+        out.printf("Problem %n");
+        out.printf("Parameter,Value %n");
+        out.printf("No of Jobs,"+ problem.getJobs().values().size()+"%n");
+        DataParser.Jobs jobs = getNuOfJobs(problem);
+//        out.printf( "noServices,"+ jobs.nServices+"%n");
+//        out.printf( "noShipments,"+ jobs.nShipments+"%n");
+//        out.printf( "noBreaks,"+ jobs.nBreaks+"%n");
+        out.printf( "fleetSize,"+ problem.getFleetSize().toString()+"%n");
+
+
+
+        out.printf("%nSolution%n");
+        out.printf("Parameter,Value%n");
+        out.printf( "Costs,"+ solution.getCost()+"%n");
+        out.printf( "No. of Vehicles,"+ solution.getRoutes().size()+"%n");
+        out.printf( "Unassigned Jobs,"+ solution.getUnassignedJobs().size()+"%n");
+
+        if (print.equals(DataParser.Print.VERBOSE)) {
+            printVerbose(out, problem, solution);
+        }
+    }
+
+    private static void printVerbose(VehicleRoutingProblem problem, VehicleRoutingProblemSolution solution) {
+        printVerbose(SYSTEM_OUT_AS_PRINT_WRITER, problem, solution);
+        SYSTEM_OUT_AS_PRINT_WRITER.flush();
+    }
+
+    private static void printVerbose(PrintWriter out, VehicleRoutingProblem problem, VehicleRoutingProblemSolution solution) {
+        out.printf("%nDetailed solution %n");
+        out.printf("Route no,Vehicle,Activity,Location,ArrivalTime,EndTime,Costs%n");
+        int routeNu = 1;
+
+        List<VehicleRoute> list = new ArrayList<VehicleRoute>(solution.getRoutes());
+        Collections.sort(list , new com.graphhopper.jsprit.core.util.VehicleIndexComparator());
+        for (VehicleRoute route : list) {
+            double costs = 0;
+            out.printf( routeNu + ","+ getVehicleString(route) +","+ route.getStart().getName()+ ",Depot,-,"+ Math.round(route.getStart().getEndTime())+
+                    "," + Math.round(costs*100)/100.0+"%n");
+            TourActivity prevAct = route.getStart();
+            for (TourActivity act : route.getActivities()) {
+                String jobId;
+                if (act instanceof TourActivity.JobActivity) {
+                    jobId = ((TourActivity.JobActivity) act).getJob().getId();
+                } else {
+                    jobId = "-";
+                }
+                double c = problem.getTransportCosts().getTransportCost(prevAct.getLocation(), act.getLocation(), prevAct.getEndTime(), route.getDriver(),
+                        route.getVehicle());
+                c += problem.getActivityCosts().getActivityCost(act, act.getArrTime(), route.getDriver(), route.getVehicle());
+                costs += c;
+                out.printf( routeNu+ ","+ getVehicleString(route)+ ","+ act.getName().split("_")[0]+ ","+ jobId+ ","+ Math.round(act.getArrTime())+ ","+
+                        Math.round(act.getEndTime())+ ","+ Math.round(costs*100)/100.0+"%n");
+                prevAct = act;
+            }
+            double c = problem.getTransportCosts().getTransportCost(prevAct.getLocation(), route.getEnd().getLocation(), prevAct.getEndTime(),
+                    route.getDriver(), route.getVehicle());
+            c += problem.getActivityCosts().getActivityCost(route.getEnd(), route.getEnd().getArrTime(), route.getDriver(), route.getVehicle());
+            costs += c;
+            out.printf( routeNu+ ","+ getVehicleString(route)+ ","+ route.getEnd().getName()+ ",Depot,"+ Math.round(route.getEnd().getArrTime())+  ",-,"+
+                    Math.round(costs*100)/100.0+"%n%n");
+            routeNu++;
+        }
+        if (!solution.getUnassignedJobs().isEmpty()) {
+            out.printf("%nUnassigned Jobs%n");
+            for (Job j : solution.getUnassignedJobs()) {
+                out.printf(j.getId()+"%n");
+            }
+
+        }
+    }
+
+    private static String getVehicleString(VehicleRoute route) {
+        return route.getVehicle().getId();
+    }
+
+    private static DataParser.Jobs getNuOfJobs(VehicleRoutingProblem problem) {
+        int nShipments = 0;
+        int nServices = 0;
+        int nBreaks = 0;
+        for (Job j : problem.getJobs().values()) {
+            if (j instanceof Shipment) {
+                nShipments++;
+            }
+            if (j instanceof com.graphhopper.jsprit.core.problem.job.Service) {
+                nServices++;
+            }
+            if (j instanceof Break) {
+                nBreaks++;
+            }
+        }
+        return new DataParser.Jobs(nServices, nShipments, nBreaks);
     }
 
 }
