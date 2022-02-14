@@ -93,7 +93,7 @@ public class DataParser {
             br.close();
             throw new EmptyMandatoryFieldException("Parameters", 2);
         }
-        if (isEmptyField(line[7])) {
+        if (isEmptyField(line[8])) {
             br.close();
             throw new EmptyMandatoryFieldException("Parameters", 8);
         }
@@ -105,9 +105,9 @@ public class DataParser {
             processingField++;
             numberOfVehicles = Integer.parseInt(line[1].trim());
             processingField = 8;
-            originLocation = getLocation(line[7].trim()); // may return null
+            originLocation = getLocation(line[8].trim()); // may return null
             if (originLocation == null) {
-                originAddress = line[7].trim();
+                originAddress = line[8].trim();
                 paramBuilder = new ParametersBuilder(vehicleCapacity, numberOfVehicles, originAddress);
             } else {
                 paramBuilder = new ParametersBuilder(vehicleCapacity, numberOfVehicles, originLocation);
