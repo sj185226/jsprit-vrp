@@ -15,6 +15,7 @@ import com.example.jaspreet.demo.Exception.EmptyMandatoryFieldException;
 import com.example.jaspreet.demo.Exception.IncorrectHeadersException;
 import com.example.jaspreet.demo.model.Cashpoint;
 import com.example.jaspreet.demo.model.Parameters;
+import com.example.jaspreet.demo.model.Parameters.ParametersBuilder;
 import com.graphhopper.jsprit.core.problem.Location;
 
 import com.graphhopper.jsprit.core.problem.VehicleRoutingProblem;
@@ -62,6 +63,10 @@ public class DataParser {
         }
     }
 
+    private boolean isEmptyField(String field) {
+        return field == null || "".equals(field.trim());
+    }
+
     public Parameters getParameters()
             throws IOException, IncorrectHeadersException, EmptyMandatoryFieldException, CorruptedFieldDataException {
         BufferedReader br = new BufferedReader(new FileReader(parameterFile));
@@ -76,71 +81,69 @@ public class DataParser {
 
         double vehicleCapacity = 0;
         int numberOfVehicles = 0;
-        LocalTime vehicleStartTime = LocalTime.of(9, 0);
-        boolean hardTimeWindow = false;
-        boolean backhaulRequired = false;
-        double fixedCostPerTrip = 0;
-        double costPerUnitDistance = 1;
-        double costPerUnitTime = 0;
         String originAddress = "";
         Location originLocation = null;
+        ParametersBuilder paramBuilder;
 
-        for (int i = 0; i < paramHeaders.length; i++) {
-            if (line[i] == null || "".equals(line[i].trim())) {
-                if (i == 0 || i == 1 || i == 7) {
-                    br.close();
-                    throw new EmptyMandatoryFieldException("Parameters", i + 1);
-                }
-                continue;
-            }
-
-            try {
-
-                switch (i) {
-                    case 0:
-                        vehicleCapacity = Double.parseDouble(line[i].trim());
-                        break;
-                    case 1:
-                        numberOfVehicles = Integer.parseInt(line[i].trim());
-                        break;
-                    case 2:
-                        String[] hhmm = line[i].split(":");
-                        vehicleStartTime = LocalTime.of(Integer.parseInt(hhmm[0]), Integer.parseInt(hhmm[1]));
-                        break;
-                    case 3:
-                        hardTimeWindow = yesSet.contains(line[i].trim().toLowerCase()) ? true : false;
-                        break;
-                    case 4:
-                        backhaulRequired = yesSet.contains(line[i].trim().toLowerCase()) ? true : false;
-                        break;
-                    case 5:
-                        fixedCostPerTrip = Double.parseDouble(line[i].trim());
-                        break;
-                    case 6:
-                        costPerUnitDistance = Double.parseDouble(line[i].trim());
-                        break;
-                    case 7:
-                        costPerUnitTime = Double.parseDouble(line[i].trim());
-                        break;
-                    default:
-                        originLocation = getLocation(line[i].trim()); // may return null
-                        if (originLocation == null)
-                            originAddress = line[i].trim();
-                }
-            } catch (Exception ex) {
-                br.close();
-                throw new CorruptedFieldDataException("Parameters", i + 1);
-            }
+        if (isEmptyField(line[0])) {
+            br.close();
+            throw new EmptyMandatoryFieldException("Parameters", 1);
+        }
+        if (isEmptyField(line[1])) {
+            br.close();
+            throw new EmptyMandatoryFieldException("Parameters", 2);
+        }
+        if (isEmptyField(line[7])) {
+            br.close();
+            throw new EmptyMandatoryFieldException("Parameters", 8);
         }
 
-        br.close();
+        int processingField = 1;
 
-        if (originLocation == null) {
-            return new Parameters(vehicleCapacity, numberOfVehicles, hardTimeWindow, backhaulRequired, fixedCostPerTrip,
-                    costPerUnitDistance, costPerUnitTime, vehicleStartTime, originAddress);
+        try {
+            vehicleCapacity = Double.parseDouble(line[0].trim());
+            processingField++;
+            numberOfVehicles = Integer.parseInt(line[1].trim());
+            processingField = 8;
+            originLocation = getLocation(line[7].trim()); // may return null
+            if (originLocation == null) {
+                originAddress = line[7].trim();
+                paramBuilder = new ParametersBuilder(vehicleCapacity, numberOfVehicles, originAddress);
+            } else {
+                paramBuilder = new ParametersBuilder(vehicleCapacity, numberOfVehicles, originLocation);
+            }
+            processingField = 2;
+            if (!isEmptyField(line[2])) {
+                String[] hhmm = line[2].split(":");
+                paramBuilder.setVehicleStartTime(LocalTime.of(Integer.parseInt(hhmm[0]), Integer.parseInt(hhmm[1])));
+            }
+            processingField++;
+            if (!isEmptyField(line[3])) {
+                paramBuilder.setHardTimeWindow(yesSet.contains(line[3].trim().toLowerCase()) ? true : false);
+            }
+            processingField++;
+            if (!isEmptyField(line[4])) {
+                paramBuilder.setBackhaulRequired(yesSet.contains(line[4].trim().toLowerCase()) ? true : false);
+            }
+            processingField++;
+            if (!isEmptyField(line[5])) {
+                paramBuilder.setFixedCostPerTrip(Double.parseDouble(line[5].trim()));
+            }
+            processingField++;
+            if (!isEmptyField(line[6])) {
+                paramBuilder.setCostPerUnitDistance(Double.parseDouble(line[6].trim()));
+            }
+            processingField++;
+            if (!isEmptyField(line[7])) {
+                paramBuilder.setCostPerUnitTime(Double.parseDouble(line[7].trim()));
+            }
+        } catch (Exception ex) {
+            throw new CorruptedFieldDataException("Parameters", processingField);
+        } finally {
+            br.close();
         }
-        return new Parameters(vehicleCapacity, numberOfVehicles, hardTimeWindow, backhaulRequired, fixedCostPerTrip,
-                costPerUnitDistance, costPerUnitTime, vehicleStartTime, originLocation);
+
+        return paramBuilder.build();
 
     }
 
