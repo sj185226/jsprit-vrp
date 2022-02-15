@@ -56,11 +56,11 @@ public class DataParser {
     @PostConstruct
     public void init() throws IncorrectHeadersException {
         paramHeaders = paramHeadersStr.split(",");
-        if (paramHeaders.length != 9) {
+        if (paramHeaders.length != 10) {
             throw new IncorrectHeadersException("Property");
         }
         dataHeaders = dataHeadersStr.split(",");
-        if (dataHeaders.length != 7) {
+        if (dataHeaders.length != 8) {
             throw new IncorrectHeadersException("Property");
         }
     }
@@ -81,10 +81,6 @@ public class DataParser {
             throw new IncorrectHeadersException("File");
         }
 
-        double vehicleCapacity = 0;
-        int numberOfVehicles = 0;
-        String originAddress = "";
-        Location originLocation = null;
         ParametersBuilder paramBuilder;
 
         if (isEmptyField(line[0])) {
@@ -99,22 +95,24 @@ public class DataParser {
             br.close();
             throw new EmptyMandatoryFieldException("Parameters", 8);
         }
+        if (isEmptyField(line[9])) {
+            br.close();
+            throw new EmptyMandatoryFieldException("Parameters", 9);
+        }
 
         int processingField = 1;
 
         try {
-            vehicleCapacity = Double.parseDouble(line[0].trim());
+            double vehicleCapacity = Double.parseDouble(line[0].trim());
             processingField++;
-            numberOfVehicles = Integer.parseInt(line[1].trim());
-            processingField = 8;
-            originLocation = getLocation(line[8].trim()); // may return null
-            if (originLocation == null) {
-                originAddress = line[8].trim();
-                paramBuilder = new ParametersBuilder(vehicleCapacity, numberOfVehicles, originAddress);
-            } else {
-                paramBuilder = new ParametersBuilder(vehicleCapacity, numberOfVehicles, originLocation);
-            }
-            processingField = 2;
+            int numberOfVehicles = Integer.parseInt(line[1].trim());
+            processingField = 9;
+            double latitude = Double.parseDouble(line[8].trim());
+            processingField++;
+            double longitude = Double.parseDouble(line[9].trim());
+            paramBuilder = new ParametersBuilder(vehicleCapacity, numberOfVehicles,
+                    Location.newInstance(latitude, longitude));
+            processingField = 3;
             if (!isEmptyField(line[2])) {
                 String[] hhmm = line[2].split(":");
                 paramBuilder.setVehicleStartTime(LocalTime.of(Integer.parseInt(hhmm[0]), Integer.parseInt(hhmm[1])));
@@ -166,41 +164,34 @@ public class DataParser {
                 String[] vals = line.split(",");
 
                 String name = vals[0].trim();
-                Location location = getLocation(vals[1].trim());
-                String address = "";
-                if (location == null)
-                    address = vals[1].trim();
+                double latitude = Double.parseDouble(vals[1].trim());
+                double longitude = Double.parseDouble(vals[2].trim());
+
                 LocalTime windowStartTime = LocalTime.of(10, 0);
-                if (vals.length >= 3 && vals[2] != null && !"".equals(vals[2].trim())) {
-                    String[] hhmm = vals[2].trim().split(":");
+                if (vals.length >= 3 && vals[3] != null && !"".equals(vals[3].trim())) {
+                    String[] hhmm = vals[3].trim().split(":");
                     windowStartTime = LocalTime.of(Integer.parseInt(hhmm[0]), Integer.parseInt(hhmm[1]));
                 }
                 LocalTime windowEndTime = LocalTime.of(22, 0);
-                if (vals.length >= 4 && vals[3] != null && !"".equals(vals[3].trim())) {
-                    String[] hhmm = vals[3].trim().split(":");
+                if (vals.length >= 4 && vals[4] != null && !"".equals(vals[4].trim())) {
+                    String[] hhmm = vals[4].trim().split(":");
                     windowEndTime = LocalTime.of(Integer.parseInt(hhmm[0]), Integer.parseInt(hhmm[1]));
                 }
                 int serviceTime = 10;
-                if (vals.length >= 5 && vals[4] != null && !"".equals(vals[4].trim())) {
-                    serviceTime = Integer.parseInt(vals[4].trim());
+                if (vals.length >= 5 && vals[5] != null && !"".equals(vals[5].trim())) {
+                    serviceTime = Integer.parseInt(vals[5].trim());
                 }
                 double pickupAmount = 0;
-                if (vals.length >= 6 && vals[5] != null && !"".equals(vals[5].trim())) {
-                    pickupAmount = Double.parseDouble(vals[5].trim());
+                if (vals.length >= 6 && vals[6] != null && !"".equals(vals[6].trim())) {
+                    pickupAmount = Double.parseDouble(vals[6].trim());
                 }
                 double deliveryAmount = 0;
-                if (vals.length >= 7 && vals[6] != null && !"".equals(vals[6].trim())) {
-                    deliveryAmount = Double.parseDouble(vals[6].trim());
+                if (vals.length >= 7 && vals[7] != null && !"".equals(vals[7].trim())) {
+                    deliveryAmount = Double.parseDouble(vals[7].trim());
                 }
 
-                Cashpoint cp;
-                if (location == null) {
-                    cp = new Cashpoint(name, address, windowStartTime, windowEndTime, serviceTime, pickupAmount,
-                            deliveryAmount);
-                } else {
-                    cp = new Cashpoint(name, location, windowStartTime, windowEndTime, serviceTime, pickupAmount,
-                            deliveryAmount);
-                }
+                Cashpoint cp = new Cashpoint(name, Location.newInstance(latitude, longitude), windowStartTime,
+                        windowEndTime, serviceTime, pickupAmount, deliveryAmount);
 
                 if (verifyCashpoint(cp)) {
                     cashpoints.add(cp);
@@ -223,24 +214,9 @@ public class DataParser {
     private boolean verifyCashpoint(Cashpoint cashpoint) {
         if (cashpoint.getName() == null || "".equals(cashpoint.getName()))
             return false;
-        if (cashpoint.getLocation() == null && (cashpoint.getAddress() == null || "".equals(cashpoint.getAddress())))
-            return false;
         if (cashpoint.getPickupAmount() == 0 && cashpoint.getDeliveryAmount() == 0)
             return false;
         return true;
-    }
-
-    private Location getLocation(String locStr) {
-        String[] latlong = locStr.split(";");
-        if (latlong.length != 2) {
-            return null;
-        }
-
-        try {
-            return Location.newInstance(Double.parseDouble(latlong[0]), Double.parseDouble(latlong[1]));
-        } catch (NumberFormatException nfe) {
-            return null;
-        }
     }
 
     private boolean validateHeaders(String[] origHeaders, String[] parsedHeaders) {
@@ -265,7 +241,7 @@ public class DataParser {
 
     }
 
-    public void print(VehicleRoutingProblem problem, VehicleRoutingProblemSolution solution)
+    public void print(VehicleRoutingProblem problem, VehicleRoutingProblemSolution solution, LocalTime startTime)
             throws FileNotFoundException {
 
         PrintWriter out = new PrintWriter(new File(outputFile));
@@ -282,11 +258,12 @@ public class DataParser {
         out.printf( "Costs,"+ solution.getCost()+"%n");
         out.printf( "No. of Vehicles,"+ solution.getRoutes().size()+"%n");
         out.printf("Unassigned Jobs," + solution.getUnassignedJobs().size() + "%n");
-        printVerbose(out, problem, solution);
+        printVerbose(out, problem, solution, startTime);
         out.close();
     }
 
-    private static void printVerbose(PrintWriter out, VehicleRoutingProblem problem, VehicleRoutingProblemSolution solution) {
+    private static void printVerbose(PrintWriter out, VehicleRoutingProblem problem,
+            VehicleRoutingProblemSolution solution, LocalTime startTime) {
         out.printf("%nDetailed solution %n");
         out.printf("Route no,Vehicle,Activity,Location,ArrivalTime,EndTime,Costs%n");
         int routeNu = 1;
@@ -295,7 +272,10 @@ public class DataParser {
         Collections.sort(list , new com.graphhopper.jsprit.core.util.VehicleIndexComparator());
         for (VehicleRoute route : list) {
             double costs = 0;
-            out.printf( routeNu + ","+ getVehicleString(route) +","+ route.getStart().getName()+ ",Depot,-,"+ Math.round(route.getStart().getEndTime())+
+            out.printf(routeNu + "," + getVehicleString(route) + "," + route.getStart().getName() + ",Depot,-,"
+                    + LocalTime.of(startTime.getHour(), startTime.getMinute())
+                            .plusMinutes(Math.round(route.getStart().getEndTime())).toString()
+                    +
                     "," + Math.round(costs*100)/100.0+"%n");
             TourActivity prevAct = route.getStart();
             for (TourActivity act : route.getActivities()) {
@@ -309,15 +289,24 @@ public class DataParser {
                         route.getVehicle());
                 c += problem.getActivityCosts().getActivityCost(act, act.getArrTime(), route.getDriver(), route.getVehicle());
                 costs += c;
-                out.printf( routeNu+ ","+ getVehicleString(route)+ ","+ act.getName().split("_")[0]+ ","+ jobId+ ","+ Math.round(act.getArrTime())+ ","+
-                        Math.round(act.getEndTime())+ ","+ Math.round(costs*100)/100.0+"%n");
+                out.printf(
+                        routeNu + "," + getVehicleString(route) + "," + act.getName().split("_")[0] + "," + jobId + ","
+                                + LocalTime.of(startTime.getHour(), startTime.getMinute())
+                                        .plusMinutes(Math.round(act.getArrTime())).toString()
+                                + "," +
+                                LocalTime.of(startTime.getHour(), startTime.getMinute())
+                                        .plusMinutes(Math.round(act.getEndTime())).toString()
+                                + "," + Math.round(costs * 100) / 100.0 + "%n");
                 prevAct = act;
             }
             double c = problem.getTransportCosts().getTransportCost(prevAct.getLocation(), route.getEnd().getLocation(), prevAct.getEndTime(),
                     route.getDriver(), route.getVehicle());
             c += problem.getActivityCosts().getActivityCost(route.getEnd(), route.getEnd().getArrTime(), route.getDriver(), route.getVehicle());
             costs += c;
-            out.printf( routeNu+ ","+ getVehicleString(route)+ ","+ route.getEnd().getName()+ ",Depot,"+ Math.round(route.getEnd().getArrTime())+  ",-,"+
+            out.printf(routeNu + "," + getVehicleString(route) + "," + route.getEnd().getName() + ",Depot,"
+                    + LocalTime.of(startTime.getHour(), startTime.getMinute())
+                            .plusMinutes(Math.round(route.getEnd().getArrTime())).toString()
+                    + ",-," +
                     Math.round(costs*100)/100.0+"%n%n");
             routeNu++;
         }

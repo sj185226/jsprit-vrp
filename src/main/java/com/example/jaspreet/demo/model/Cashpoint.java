@@ -6,24 +6,12 @@ import com.graphhopper.jsprit.core.problem.Location;
 
 public class Cashpoint {
     private String name;
-    private String address;
     private Location location;
     private LocalTime windowStartTime;
     private LocalTime windowEndTime;
     private int serviceTime;
     private double pickupAmount;
     private double deliveryAmount;
-
-    public Cashpoint(String name, String address, LocalTime windowStartTime,
-            LocalTime windowEndTime, int serviceTime, double pickupAmount, double deliveryAmount) {
-        this.name = name;
-        this.address = address;
-        this.windowStartTime = windowStartTime;
-        this.windowEndTime = windowEndTime;
-        this.serviceTime = serviceTime;
-        this.pickupAmount = pickupAmount;
-        this.deliveryAmount = deliveryAmount;
-    }
 
     public Cashpoint(String name, Location location, LocalTime windowStartTime,
             LocalTime windowEndTime, int serviceTime, double pickupAmount, double deliveryAmount) {
@@ -42,14 +30,6 @@ public class Cashpoint {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setLocation(String address) {
-        this.address = address;
     }
 
     public Location getLocation() {

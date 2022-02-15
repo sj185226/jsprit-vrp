@@ -81,7 +81,6 @@ public class VRPSolver {
             Collection<VehicleRoutingProblemSolution> solutions = algorithm.searchSolutions();
             VehicleRoutingProblemSolution bestSolution = Solutions.bestOf(solutions);
 
-    //        new VrpXMLWriter(problem, solutions).write("output/problem-with-solution.xml");
 
             if (!bestSolution.getUnassignedJobs().isEmpty()) {
                 timeBuffer += 60;
@@ -92,7 +91,7 @@ public class VRPSolver {
                 Plotter plotter = new Plotter(problem, bestSolution);
                 plotter.setLabel(Plotter.Label.SIZE);
                 plotter.plot("output/solution.png", "solution");
-                dataParser.print(problem, bestSolution);
+                dataParser.print(problem, bestSolution, param.getVehicleStartTime());
                 new GraphStreamViewer(problem, bestSolution).setRenderDelay(200).display();
                 return true;
             }

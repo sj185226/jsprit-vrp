@@ -14,7 +14,6 @@ public class Parameters {
     private double fixedCostPerTrip;
     private double costPerUnitDistance;
     private double costPerUnitTime;
-    private String originAddress;
     private Location originlocation;
 
     public static class ParametersBuilder {
@@ -27,7 +26,6 @@ public class Parameters {
         private double fixedCostPerTrip = 0;
         private double costPerUnitDistance = 1;
         private double costPerUnitTime = 0;
-        private String originAddress;
         private Location originlocation;
 
         public ParametersBuilder(double vehicleCapacity, int numberOfVehicles,
@@ -35,16 +33,8 @@ public class Parameters {
         this.vehicleCapacity = vehicleCapacity;
         this.numberOfVehicles = numberOfVehicles;
         this.originlocation = originLocation;
-        this.originAddress = originLocation.toString();
     }
 
-    public ParametersBuilder(double vehicleCapacity, int numberOfVehicles,
-            String originAddress) {
-        this.vehicleCapacity = vehicleCapacity;
-        this.numberOfVehicles = numberOfVehicles;
-        this.originAddress = originAddress;
-
-    }
 
     public void setVehicleStartTime(LocalTime vehicleStartTime) {
         this.vehicleStartTime = vehicleStartTime;
@@ -83,7 +73,6 @@ private Parameters(ParametersBuilder builder) {
     this.fixedCostPerTrip = builder.fixedCostPerTrip;
     this.hardTimeWindow = builder.hardTimeWindow;
     this.numberOfVehicles = builder.numberOfVehicles;
-    this.originAddress = builder.originAddress;
     this.originlocation = builder.originlocation;
     this.vehicleCapacity = builder.vehicleCapacity;
     this.vehicleStartTime = builder.vehicleStartTime;
@@ -119,10 +108,6 @@ private Parameters(ParametersBuilder builder) {
 
     public void setOriginLocation(Location origiLocation) {
         this.originlocation = origiLocation;
-    }
-
-    public String getOriginAddress() {
-        return originAddress;
     }
 
     public double getCostPerUnitTime() {
