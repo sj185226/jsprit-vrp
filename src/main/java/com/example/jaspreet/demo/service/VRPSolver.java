@@ -3,7 +3,6 @@ package com.example.jaspreet.demo.service;
 import com.example.jaspreet.demo.model.Cashpoint;
 import com.example.jaspreet.demo.model.DataMatrix;
 import com.example.jaspreet.demo.model.Parameters;
-import com.graphhopper.jsprit.analysis.toolbox.GraphStreamViewer;
 import com.graphhopper.jsprit.analysis.toolbox.Plotter;
 import com.graphhopper.jsprit.core.algorithm.VehicleRoutingAlgorithm;
 import com.graphhopper.jsprit.core.algorithm.box.Jsprit;
@@ -92,7 +91,6 @@ public class VRPSolver {
                 plotter.setLabel(Plotter.Label.SIZE);
                 plotter.plot("output/solution.png", "solution");
                 dataParser.print(problem, bestSolution, param.getVehicleStartTime());
-                new GraphStreamViewer(problem, bestSolution).setRenderDelay(200).display();
                 return true;
             }
         }
