@@ -23,13 +23,10 @@ import com.graphhopper.jsprit.core.reporting.SolutionPrinter;
 import com.graphhopper.jsprit.core.util.Solutions;
 import com.graphhopper.jsprit.core.util.VehicleRoutingTransportCostsMatrix;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -39,8 +36,8 @@ import java.util.List;
 @Service
 public class VRPSolver {
 
-    @Value("${RESULT_FILE}")
-    private String outputFile;
+    @Autowired
+    private DataParser dataParser;
 
     private List<Pickup> pickups;
     private List<Delivery> deliveries;
@@ -91,13 +88,11 @@ public class VRPSolver {
                 if(param.isHardTimeWindow()) return false;
             }
             else {
-                DataParser.print(bestSolution);
+                SolutionPrinter.print(bestSolution);
                 Plotter plotter = new Plotter(problem, bestSolution);
                 plotter.setLabel(Plotter.Label.SIZE);
                 plotter.plot("output/solution.png", "solution");
-                PrintWriter pw = new PrintWriter(new File(outputFile));
-                DataParser.print(pw, problem, bestSolution, DataParser.Print.VERBOSE);
-                pw.close();
+                dataParser.print(problem, bestSolution);
                 new GraphStreamViewer(problem, bestSolution).setRenderDelay(200).display();
                 return true;
             }
